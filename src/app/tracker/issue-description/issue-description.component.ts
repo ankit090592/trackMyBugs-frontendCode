@@ -1,0 +1,293 @@
+import { Component, OnInit, ViewChild, Inject, LOCALE_ID } from '@angular/core'
+import { AppService } from 'src/app/app.service'
+import { SocketService } from 'src/app/socket.service'
+import { Router, ActivatedRoute } from '@angular/router'
+import { ToastrService } from 'ngx-toastr'
+import { Cookie } from 'ng2-cookies/ng2-cookies'
+import { Location } from '@angular/common'
+//for accessing form fileds in component
+import { NgForm } from '@angular/forms';
+//for formatting
+import { formatDate } from '@angular/common';
+
+@Component({
+  selector: 'app-issue-description',
+  templateUrl: './issue-description.component.html',
+  styleUrls: ['./issue-description.component.css']
+})
+export class IssueDescriptionComponent implements OnInit {
+
+  authToken: any
+  userInfo: any
+  userName: any
+  issueId: any
+  public allUsers: any = []
+  currentIssue: any = ''
+  tempIssueData: any = ''
+  public editBlock: boolean = false
+  public hasChanges: boolean = false
+  // public showEditForm: boolean = false
+  // public buttonName: any = 'Edit'
+  // ------------- for create new issue form ----------
+  public titleText: any
+  public reporterText: any
+  public assigneeText: any = ''
+  public statusText: any = ''
+  public descriptionText: any
+  // -----------------------
+  public isChecked: boolean = false;
+  public followersList: any = []
+  public commentsList: any = []
+  public comments: any = ''
+  constructor(private location: Location, public appService: AppService, public socketService: SocketService,
+    public router: Router, public toastr: ToastrService, private activatedRoute: ActivatedRoute,
+    @Inject(LOCALE_ID) private locale: string) { }
+
+  ngOnInit() {
+
+    console.log("Inside issue-desc ngOnInit")
+    this.authToken = Cookie.get("authToken")
+    console.log("issue-desc authToken: " + this.authToken)
+    this.userName = Cookie.get("userName")
+    console.log("issue-desc userName: " + this.userName)
+
+    this.userInfo = this.appService.getUserInfoFromLocalStorage()
+    console.log("issue-desc userInfo: " + JSON.stringify(this.userInfo))
+    if (this.activatedRoute.snapshot.paramMap.get('issueId')) {
+      this.issueId = this.activatedRoute.snapshot.paramMap.get('issueId')
+    }
+    this.getallUsers()
+    if (!(this.issueId === null || this.issueId === undefined || this.issueId === '' || this.issueId.length === 0)) {
+      this.editBlock = true
+      this.getSelectedIssue()
+      this.getSelectedIssueFollowers()
+    }
+
+  }
+
+  // submitForm(form: NgForm) {
+  //   this.hasChanges = false;
+  //   for (let prop in form) {
+  //     console.log("Form values: " +form)
+  //     if (this.currentIssue[prop] != form[prop]) {
+  //       this.hasChanges = true;
+  //     }
+  //   }
+  //   // If no changes, cancel form submition
+  //   if (!this.hasChanges) { return; }
+  // }
+
+  public goBack: any = () => {
+
+    this.location.back()
+
+  }
+
+  public getallUsers = () => {
+
+    this.appService.getAllUsers().subscribe((data) => {
+      if (data.status === 200) {
+        console.log("Inside getAllUsers success:" + JSON.stringify(data.data))
+        this.allUsers = data.data
+      } else {
+        console.log("Inside getAllUsers failure" + data.message)
+      }
+    })
+  }
+
+
+
+  public getSelectedIssue = () => {
+
+    this.appService.getIssueById(this.issueId).subscribe((data) => {
+      console.log(data)
+      if (data.status === 200) {
+        this.currentIssue = data.data
+        // if we do this.tempIssueData = data.data then it will point to the same location as 
+        // this.currentIssue hence changes in one will impact the other var too.
+        // so make a deep copy like below
+        this.tempIssueData = Object.assign({}, data.data)
+
+        //below code stmt is for assigning assigneeId to tempisData assignee
+        // so that while tracking form changes comparision is made b/w id
+        this.tempIssueData.assignee = data.data.assigneeId
+        
+        // format date to short date
+        this.currentIssue.createdOn = formatDate(this.currentIssue.createdOn, 'yyyy-MMMM-dd', this.locale)
+        this.commentsList = data.data.comments.reverse()
+        console.log("Current issue: " + JSON.stringify(this.currentIssue))
+
+      } else {
+        console.log(data.message)
+      }
+    })
+  }
+
+  public getSelectedIssueFollowers = () => {
+    this.socketService.emitGetFollowersList(this.issueId)
+    this.socketService.getFollowersList(this.issueId).subscribe((data) => {
+      console.log("inside getFollowersList: " + JSON.stringify(data))
+      for (let key in data) {
+        console.log("followers list key:" + key)
+        if (key === this.userInfo.userId) {
+          this.isChecked = true;
+        }
+        this.followersList.push({ followerName: data[key] })
+      }
+      console.log("followers list: " + this.followersList)
+
+    })
+  }
+
+  followCheckBox(event: any) {
+    if (event === 'Y') {
+      console.log("following")
+      let followerData = {
+        issueId: this.issueId,
+        userId: this.userInfo.userId,
+        userName: this.userName,
+        issueTitle: this.currentIssue.title
+      }
+      this.socketService.followIssue(followerData)
+      this.getSelectedIssueFollowers()
+    } else if (event === 'N') {
+      let unFollowData = {
+        issueId: this.issueId,
+        userId: this.userInfo.userId
+      }
+      this.socketService.unFollowIssue(unFollowData)
+      this.getSelectedIssueFollowers()
+    }
+  }
+
+  // click event - to create a new issue
+  createNewIssue = () => {
+
+    let assigneeName: any
+    for (let user of this.allUsers) {
+      if (user.userId === this.assigneeText) {
+        assigneeName = user.firstName + ' ' + user.lastName
+      }
+    }
+    let newIssueData = {
+      title: this.titleText,
+      description: this.descriptionText,
+      reporter: this.userName,
+      reporterId: this.userInfo.userId,
+      assignee: assigneeName,
+      assigneeId: this.assigneeText,
+      status: this.statusText,
+      createdOn: Date.now
+    }
+    console.log("New Issue data:" + JSON.stringify(newIssueData))
+    this.appService.createNewIssue(newIssueData).subscribe((data) => {
+      if (data.status === 200) {
+        this.toastr.success("New Issue created sucessfully!")
+
+        // when a new issue is created, 2 followers will always be there i.e:
+        // reporter & assignee
+        let reporterFollowerData = {
+          issueId: data.data.issueId,
+          userId: data.data.reporterId,
+          userName: data.data.reporter,
+          issueTitle: data.data.title
+        }
+        let assigneeFollowerData = {
+          issueId: data.data.issueId,
+          userId: data.data.assigneeId,
+          userName: data.data.assignee,
+          issueTitle: data.data.title
+        }
+        this.socketService.followIssue(reporterFollowerData)
+        this.socketService.followIssue(assigneeFollowerData)
+        this.router.navigate(['dashboard'])
+      } else {
+        this.toastr.error(data.message, "Error")
+      }
+    })
+  }
+
+
+  // click event - to edit an existing issue
+  editIssue = (form: NgForm) => {
+    // ----- custom logic to track form field changes and specify which field changed --------
+    this.hasChanges = false
+    let whatChanged: any = []
+    for (let prop in form) {
+      console.log("property: " + prop)
+      console.log("Form values: " + form[prop])
+          console.log("currentissue values: " + this.tempIssueData[prop])
+      if (prop !== 'follow' && prop !== 'assignee') {
+        if (this.tempIssueData[prop] !== form[prop]) {
+          
+          this.hasChanges = true;
+          whatChanged.push(prop)
+          this.tempIssueData[prop] = form[prop]
+        }
+      } if (prop === 'assignee' && this.tempIssueData['assignee'] !== form['assignee']) {
+        this.hasChanges = true;
+        whatChanged.push('assignee')
+        this.tempIssueData['assignee'] = form['assignee']
+      }
+    }
+    
+    if (this.hasChanges === true) {
+      this.appService.editIssue(this.issueId, this.currentIssue).subscribe((data) => {
+        if (data.status === 200) {
+          this.toastr.success("Edited successfully")
+          console.log("whatchnged: " + whatChanged)
+          let notifData = {
+            editedBy: this.userName,
+            editedContent: whatChanged,
+            issueTitle: this.currentIssue.title,
+            issueId: this.issueId
+          }
+          this.socketService.notifyFollowers(notifData)
+
+        } else {
+          this.toastr.error(data.message)
+        }
+      })
+    } else {
+      this.toastr.error("No chnages made!")
+    }
+  }
+
+
+  // click event - to add a new comment to an issue
+  addNewComment = () => {
+    if (this.comments === null || this.comments === '' || this.comments.length === 0) {
+      this.toastr.error("Comment can't be blank!")
+    } else {
+      let commentData = {
+        commenterId: this.userInfo.userId,
+        commenterName: this.userName,
+        commentText: this.comments
+      }
+
+      this.appService.addNewComment(this.issueId, commentData).subscribe((data) => {
+        if (data.status === 200) {
+
+          // this.commentsList.push(data.data.comments)
+          this.commentsList = data.data.comments.reverse()
+
+          console.log("This is commentsList" + JSON.stringify(this.commentsList))
+          this.comments = ''
+
+          let notifData = {
+            editedBy: this.userName,
+            editedContent: 'comment',
+            issueTitle: this.currentIssue.title,
+            issueId: this.issueId
+          }
+
+          this.socketService.notifyFollowers(notifData)
+        } else {
+          this.toastr.error(data.message)
+        }
+      })
+    }
+
+  }
+
+}

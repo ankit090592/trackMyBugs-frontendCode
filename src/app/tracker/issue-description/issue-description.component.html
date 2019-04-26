@@ -1,0 +1,269 @@
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-sm-9 col-md-7 col-lg-5 mx-auto">
+            <div class="card card-signup my-5">
+                <div class="card-body">
+                    <a (click)="goBack()" style="cursor:pointer">
+                        <i class="material-icons">
+                            arrow_back
+                        </i>
+                    </a>
+                    
+
+                    <div *ngIf="editBlock;else createBlock">
+
+                        <h5 class="card-title text-center">Edit this issue</h5>
+
+                        <form class="form-signup" (ngSubmit)="f.form.valid && onSubmit()" #f="ngForm" novalidate>
+
+                            <!-- title -->
+                            <div class="form-label-group">
+                                <h6> Title</h6>
+                                <input type="text" [(ngModel)]="currentIssue.title" #title="ngModel" name="title"
+                                    class="form-control" placeholder="Title"
+                                    [ngClass]="{ 'is-invalid': f.submitted && title.invalid }" required autofocus>
+                                <div *ngIf="f.submitted && title.invalid" class="invalid-feedback">
+                                    <div *ngIf="title.errors.required">Title is required</div>
+                                </div>
+                            </div>
+
+                            <!-- reporter -->
+                            <div class="form-label-group">
+                                <h6> Reporter </h6>
+                                <input disabled="disabled" type="text" name="reporter"
+                                    [(ngModel)]="currentIssue.reporter" #reporter="ngModel" class="form-control">
+                            </div>
+
+                            <!-- assignee -->
+                            <div class="form-label-group">
+                                <h6> Assignee </h6>
+                                <select name="assignee" placeholder="Select assignee"
+                                    [(ngModel)]="currentIssue.assigneeId" #assigneeId="ngModel" class="form-control"
+                                    required>
+                                    <option value="" disabled>Select your option</option>
+                                    <option *ngFor="let selAssignee of allUsers" [value]="selAssignee.userId">
+                                        {{selAssignee.firstName + ' ' + selAssignee.lastName}}
+                                    </option>
+                                </select>
+
+                            </div>
+
+
+                            <!-- status -->
+                            <div class="form-label-group">
+                                <h6> Status </h6>
+                                <select name="status" [(ngModel)]="currentIssue.status" #status="ngModel"
+                                    id="inputStatus" class="form-control" placeholder="Select Status"
+                                    [ngClass]="{ 'is-invalid': f.submitted && status.invalid }" required>
+                                    <option>in-Backlog</option>
+                                    <option>in-Progress</option>
+                                    <option>in-Test</option>
+                                    <option>Done</option>
+                                </select>
+                                <div *ngIf="f.submitted && status.invalid" class="invalid-feedback">
+                                    <div *ngIf="status.errors.required">Status is required</div>
+                                </div>
+                            </div>
+
+
+                            <!-- Created On -->
+                            <div class="form-label-group">
+                                <h6> Created On </h6>
+                                <input disabled="disabled" type="text" name="date" [(ngModel)]="currentIssue.createdOn"
+                                    #date="ngModel" class="form-control">
+                            </div>
+
+                            <!-- Follow issue checkbox -->
+                            <div class="row form-label-group" style="margin-right:0">
+                                <h6 class="col"> Follow this issue </h6>
+                                <input type="checkbox" [(ngModel)]="isChecked"
+                                    (change)="followCheckBox(isChecked?'Y':'N')" name="follow" #follow="ngModel"
+                                    class="col-1 form-control">
+                            </div>
+
+                            <!-- View followers -->
+                            <div class="row form-label-group" style="margin-right:0">
+                                <h6 class="col"> View followers </h6>
+                                <button type="button" data-toggle="modal" data-target="#exampleModalCenter">
+                                    <i class="material-icons">
+                                        remove_red_eye
+                                    </i>
+                                </button>
+                                <!-- Modal -->
+                                <div class="modal fade" id="exampleModalCenter" tabindex="-1" role="dialog"
+                                    aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="exampleModalCenterTitle">Followers</h5>
+                                                <button type="button" class="close" data-dismiss="modal"
+                                                    aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <div *ngIf="followersList; else noFollowers">
+                                                    <div class="row m-1" *ngFor="let follower of followersList">
+                                                        <div class="col-1">
+                                                            <i class="material-icons">
+                                                                account_circle
+                                                            </i>
+                                                        </div>
+                                                        <div class="col">
+                                                            <span><b>{{follower.followerName}}</b></span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <ng-template #noFollowers>
+                                                    <div style="text-align:center">
+                                                        No followers found!
+                                                    </div>
+                                                </ng-template>
+
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary"
+                                                    data-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- description field -->
+                            <div class="form-label-group">
+                                <h6> Description </h6>
+                                <ejs-richtexteditor #fromRTE name="description" [(ngModel)]="currentIssue.description"
+                                    id="inputDescription">
+                                </ejs-richtexteditor>
+
+                                <!-- <label for="inputDescription">Description</label> -->
+                            </div>
+
+                            <button (click)="editIssue(f.value)" class="btn btn-lg btn-primary btn-block text-uppercase"
+                                type="submit">Edit & Save</button>
+                        </form>
+
+
+                        <!-- show previous comments -->
+                        <h6> Comments on this issue</h6>
+                        <div class="form-label-group sideBar mt-2" *ngIf="commentsList">
+
+                            <div class="row sideBar-body" *ngFor="let comment of commentsList">
+                                <div class="col-1 sideBar-avatar">
+                                    <i class="material-icons">
+                                        account_circle
+                                    </i>
+                                </div>
+
+                                <div class="col">
+                                    <span><b>{{comment.commenterName}}</b></span>
+                                    <p class="card-text">
+                                        {{comment.commentText}}
+                                    </p>
+                                </div>
+                                <div class="col-3 float-right">
+                                    <small class="text-muted float-right text-secondary">{{comment.commentDate | date}}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form class="form-signup" (ngSubmit)="cmnt.form.valid && onSubmit()" #cmnt="ngForm" novalidate>
+                            <!-- add new comments -->
+                            <div class="form-label-group">
+                                <h6> Add a new comment</h6>
+                                <textarea name="comments" [(ngModel)]="comments" class="form-control"
+                                    placeholder="comments..."
+                                    [ngClass]="{ 'is-invalid': cmnt.submitted && comments.invalid }" required>
+                                    <div *ngIf="cmnt.submitted && comments.invalid" class="invalid-feedback">
+                                        <div *ngIf="comments.errors.required">Comment is required</div>
+                                    </div>
+                                    </textarea>
+                            </div>
+
+                            <button (click)="addNewComment()" class="btn btn-lg btn-primary btn-block text-uppercase"
+                                type="submit">Add comment</button>
+                            <hr class="my-4">
+                        </form>
+
+                    </div>
+
+
+
+
+                    <!---------------------- Create new issue form ---------------------->
+                    <ng-template #createBlock>
+
+                        <h5 class="card-title text-center">Create new issue</h5>
+
+                        <form class="form-signup" (ngSubmit)="f.form.valid" #f="ngForm" novalidate>
+
+                            <!-- title -->
+                            <div class="form-label-group">
+                                <h6> Title</h6>
+                                <input type="text" [(ngModel)]="titleText" #title="ngModel" name="titleText"
+                                    class="form-control" placeholder="Title"
+                                    [ngClass]="{ 'is-invalid': f.submitted && title.invalid }" required autofocus>
+                                <div *ngIf="f.submitted && title.invalid" class="invalid-feedback">
+                                    <div *ngIf="title.errors.required">Title is required</div>
+                                </div>
+                                <!-- <label for="inputTitle">Title</label> -->
+                            </div>
+
+                            <!-- assignee -->
+                            <div class="form-label-group">
+                                <h6> Assign To </h6>
+                                <select name="assignee" [(ngModel)]="assigneeText" #assignee="ngModel"
+                                    class="form-control" [ngClass]="{ 'is-invalid': f.submitted && assignee.invalid }"
+                                    required>
+                                    <option value="" disabled selected>-- Select assignee --</option>
+                                    <option *ngFor="let assignee of allUsers" [value]="assignee.userId">
+                                        {{assignee.firstName + ' ' + assignee.lastName}}
+                                    </option>
+                                </select>
+                                <div *ngIf="f.submitted && assignee.invalid" class="invalid-feedback">
+                                    <div *ngIf="assignee.errors.required">Assignee Name is required</div>
+                                </div>
+                            </div>
+
+
+                            <!-- status -->
+                            <div class="form-label-group">
+                                <h6> Status </h6>
+                                <select name="status" [(ngModel)]="statusText" #status="ngModel" id="inputStatus"
+                                    class="form-control" placeholder="Select Status"
+                                    [ngClass]="{ 'is-invalid': f.submitted && status.invalid }" required>
+                                    <option value="" disabled selected>-- Select status --</option>
+                                    <option>in-Backlog</option>
+                                    <option>in-Progress</option>
+                                    <option>in-Test</option>
+                                    <option>Done</option>
+                                </select>
+                                <div *ngIf="f.submitted && status.invalid" class="invalid-feedback">
+                                    <div *ngIf="status.errors.required">Status is required</div>
+                                </div>
+                                <!-- <label for="inputStatus">Status</label> -->
+                            </div>
+
+                            <!-- description field -->
+                            <div class="form-label-group">
+                                <h6> Description </h6>
+                                <ejs-richtexteditor #fromRTE name="description" [(ngModel)]="descriptionText"
+                                    id="inputDescription">
+                                </ejs-richtexteditor>
+                            </div>
+
+                            <button (click)="createNewIssue()" class="btn btn-lg btn-primary btn-block text-uppercase"
+                                type="submit">Create</button>
+
+                            <hr class="my-4">
+
+                        </form>
+                    </ng-template>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
