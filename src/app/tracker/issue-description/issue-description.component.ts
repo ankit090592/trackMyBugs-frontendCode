@@ -45,14 +45,14 @@ export class IssueDescriptionComponent implements OnInit {
 
   ngOnInit() {
 
-    console.log("Inside issue-desc ngOnInit")
+    // console.log("Inside issue-desc ngOnInit")
     this.authToken = Cookie.get("authToken")
-    console.log("issue-desc authToken: " + this.authToken)
+    // console.log("issue-desc authToken: " + this.authToken)
     this.userName = Cookie.get("userName")
-    console.log("issue-desc userName: " + this.userName)
+    // console.log("issue-desc userName: " + this.userName)
 
     this.userInfo = this.appService.getUserInfoFromLocalStorage()
-    console.log("issue-desc userInfo: " + JSON.stringify(this.userInfo))
+    // console.log("issue-desc userInfo: " + JSON.stringify(this.userInfo))
     if (this.activatedRoute.snapshot.paramMap.get('issueId')) {
       this.issueId = this.activatedRoute.snapshot.paramMap.get('issueId')
     }
@@ -87,10 +87,10 @@ export class IssueDescriptionComponent implements OnInit {
 
     this.appService.getAllUsers().subscribe((data) => {
       if (data.status === 200) {
-        console.log("Inside getAllUsers success:" + JSON.stringify(data.data))
+        // console.log("Inside getAllUsers success:" + JSON.stringify(data.data))
         this.allUsers = data.data
       } else {
-        console.log("Inside getAllUsers failure" + data.message)
+        // console.log("Inside getAllUsers failure" + data.message)
       }
     })
   }
@@ -100,7 +100,7 @@ export class IssueDescriptionComponent implements OnInit {
   public getSelectedIssue = () => {
 
     this.appService.getIssueById(this.issueId).subscribe((data) => {
-      console.log(data)
+      // console.log(data)
       if (data.status === 200) {
         this.currentIssue = data.data
         // if we do this.tempIssueData = data.data then it will point to the same location as 
@@ -115,10 +115,10 @@ export class IssueDescriptionComponent implements OnInit {
         // format date to short date
         this.currentIssue.createdOn = formatDate(this.currentIssue.createdOn, 'yyyy-MMMM-dd', this.locale)
         this.commentsList = data.data.comments.reverse()
-        console.log("Current issue: " + JSON.stringify(this.currentIssue))
+        // console.log("Current issue: " + JSON.stringify(this.currentIssue))
 
       } else {
-        console.log(data.message)
+        // console.log(data.message)
       }
     })
   }
@@ -126,22 +126,22 @@ export class IssueDescriptionComponent implements OnInit {
   public getSelectedIssueFollowers = () => {
     this.socketService.emitGetFollowersList(this.issueId)
     this.socketService.getFollowersList(this.issueId).subscribe((data) => {
-      console.log("inside getFollowersList: " + JSON.stringify(data))
+      // console.log("inside getFollowersList: " + JSON.stringify(data))
       for (let key in data) {
-        console.log("followers list key:" + key)
+        // console.log("followers list key:" + key)
         if (key === this.userInfo.userId) {
           this.isChecked = true;
         }
         this.followersList.push({ followerName: data[key] })
       }
-      console.log("followers list: " + this.followersList)
+      // console.log("followers list: " + this.followersList)
 
     })
   }
 
   followCheckBox(event: any) {
     if (event === 'Y') {
-      console.log("following")
+      // console.log("following")
       let followerData = {
         issueId: this.issueId,
         userId: this.userInfo.userId,
@@ -179,7 +179,7 @@ export class IssueDescriptionComponent implements OnInit {
       status: this.statusText,
       createdOn: Date.now
     }
-    console.log("New Issue data:" + JSON.stringify(newIssueData))
+    // console.log("New Issue data:" + JSON.stringify(newIssueData))
     this.appService.createNewIssue(newIssueData).subscribe((data) => {
       if (data.status === 200) {
         this.toastr.success("New Issue created sucessfully!")
@@ -214,9 +214,9 @@ export class IssueDescriptionComponent implements OnInit {
     this.hasChanges = false
     let whatChanged: any = []
     for (let prop in form) {
-      console.log("property: " + prop)
-      console.log("Form values: " + form[prop])
-          console.log("currentissue values: " + this.tempIssueData[prop])
+      // console.log("property: " + prop)
+      // console.log("Form values: " + form[prop])
+      //     console.log("currentissue values: " + this.tempIssueData[prop])
       if (prop !== 'follow' && prop !== 'assignee') {
         if (this.tempIssueData[prop] !== form[prop]) {
           
@@ -235,7 +235,7 @@ export class IssueDescriptionComponent implements OnInit {
       this.appService.editIssue(this.issueId, this.currentIssue).subscribe((data) => {
         if (data.status === 200) {
           this.toastr.success("Edited successfully")
-          console.log("whatchnged: " + whatChanged)
+          // console.log("whatchnged: " + whatChanged)
           let notifData = {
             editedBy: this.userName,
             editedContent: whatChanged,
@@ -271,7 +271,7 @@ export class IssueDescriptionComponent implements OnInit {
           // this.commentsList.push(data.data.comments)
           this.commentsList = data.data.comments.reverse()
 
-          console.log("This is commentsList" + JSON.stringify(this.commentsList))
+          // console.log("This is commentsList" + JSON.stringify(this.commentsList))
           this.comments = ''
 
           let notifData = {

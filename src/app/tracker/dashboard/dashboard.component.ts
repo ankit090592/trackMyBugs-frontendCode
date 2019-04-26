@@ -30,25 +30,26 @@ export class DashboardComponent implements OnInit {
   public issueEdited: boolean = false
   constructor(public appService: AppService, public socketService: SocketService,
     public router: Router, public toastr: ToastrService) {
-    console.log("Inside dashboard constructor")
+    // console.log("Inside dashboard constructor")
   }
 
   ngOnInit() {
-    console.log("Inside dashboard ngOnInit")
+    // console.log("Inside dashboard ngOnInit")
     this.authToken = Cookie.get("authToken")
-    console.log("dashboard authToken: " + this.authToken)
+    // console.log("dashboard authToken: " + this.authToken)
     this.userName = Cookie.get("userName")
-    console.log("dashboard userName: " + this.userName)
+    // console.log("dashboard userName: " + this.userName)
 
     this.userInfo = this.appService.getUserInfoFromLocalStorage()
-    console.log("dashboard userInfo: " + JSON.stringify(this.userInfo))
+    // console.log("dashboard userInfo: " + JSON.stringify(this.userInfo))
     this.getAllIssues()
     this.verifyUserAndJoinIssues()
     this.socketService.receiveNotification().subscribe((data) => {
-      console.log(data)
+      // console.log(data)
 
-      if (data.editedContent == "issue") {
-        this.issueEdited = true
+      
+      if (data.editedContent == 'comment') {
+        this.issueEdited = false
         this.notifCounter++
         if (Array.isArray(this.notifData)) {
           this.notifData.push(data)
@@ -58,8 +59,9 @@ export class DashboardComponent implements OnInit {
         }
         this.toastr.success(`Open notifications panel for details`, 'New Notification')
       }
-      else if (data.editedContent == 'comment') {
-        this.issueEdited = false
+
+      else {
+        this.issueEdited = true
         this.notifCounter++
         if (Array.isArray(this.notifData)) {
           this.notifData.push(data)
@@ -79,17 +81,18 @@ export class DashboardComponent implements OnInit {
     this.appService.getAllIssues(this.userInfo.userId).subscribe((data) => {
       if (data.status == 200) {
         this.allIssues = data['data']
-        console.log("All Issues: " + JSON.stringify(this.allIssues[0].issueId))
+        // console.log("All Issues: " + JSON.stringify(this.allIssues[0].issueId))
       }
 
 
       else if (data.status == 404) {
+        // console.log("All issue in err:" + this.allIssues.length)
         this.toastr.info("No issues found!")
       }
 
-      for (let issue of this.allIssues) {
-        console.log("All issue in ts file:" + issue.issueId)
-      }
+      // for (let issue of this.allIssues) {
+      //   console.log("All issue in ts file:" + issue.issueId)
+      // }
     }
     )
   }
@@ -131,7 +134,7 @@ export class DashboardComponent implements OnInit {
 
     return function (a, b) {
       let result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0
-      console.log("dynamicSort called")
+      // console.log("dynamicSort called")
       // to make result the opposite i.e toggle between ascending/descending
       return result * sortOrder
     }

@@ -17,7 +17,7 @@ export class SocketService {
   private url = "http://api.appdevtest.xyz";
   private socket
   constructor(public http: HttpClient) {
-    console.log("inside socket constructor")
+    // console.log("inside socket constructor")
     //first step where connection is established. i.e. Handshake moment
     this.socket = io(this.url)
   }
@@ -89,7 +89,7 @@ export class SocketService {
 
     return Observable.create((observer) => {
       this.socket.on('notification', (data) => {
-        console.log("New notification received!")
+        // console.log("New notification received!")
         observer.next(data)
       })
     })

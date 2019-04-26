@@ -42,11 +42,11 @@ export class SignupComponent implements OnInit {
       createdOn: Date.now()
     }
 
-    console.log(data);
+    // console.log(data);
 
     this.appService.signupFunction(data).subscribe((apiResponse) => {
 
-      console.log(apiResponse);
+      // console.log(apiResponse);
 
       if (apiResponse.status === 200) {
 
@@ -67,7 +67,7 @@ export class SignupComponent implements OnInit {
     }, (err) => {
 
       this.toastr.error('some error occured');
-      console.log("Error message: " + err.message)
+      // console.log("Error message: " + err.message)
 
     });
   }

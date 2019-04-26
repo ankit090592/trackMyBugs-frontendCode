@@ -40,12 +40,12 @@ export class LoginComponent implements OnInit {
     this.appService.signinFunction(data).subscribe((apiResponse) => {
 
       if (apiResponse.status === 200) {
-        console.log(apiResponse)
+        // console.log(apiResponse)
         // this.cookieService.setItem('accept-cookie', 'true') 
         // this.acceptedCookie = true 
         Cookie.set("authToken", apiResponse.data.authToken)
         //console.log("authToken in cookie sigin component: "+at)
-        console.log("authToken from apiResponse in sigin component: " + apiResponse.data.authToken)
+        // console.log("authToken from apiResponse in sigin component: " + apiResponse.data.authToken)
 
         Cookie.set("userId", apiResponse.data.userDetails.userId)
 
@@ -57,12 +57,12 @@ export class LoginComponent implements OnInit {
         this.router.navigate(['/dashboard'])
 
       }  else {
-        console.log("login component in else part: " +apiResponse.message)
+        // console.log("login component in else part: " +apiResponse.message)
         this.toastr.error(apiResponse.message)
       }
      
     }, (err) => {
-      console.log("login component in error part: " +err.message)
+      // console.log("login component in error part: " +err.message)
       this.toastr.error(err.message)
 
     })
