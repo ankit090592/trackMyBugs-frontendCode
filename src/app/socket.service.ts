@@ -15,6 +15,7 @@ import { HttpErrorResponse, HttpParams } from '@angular/common/http'
 export class SocketService {
 
   private url = "http://api.appdevtest.xyz";
+  // private url = "http://localhost:3000";
   private socket
   constructor(public http: HttpClient) {
     // console.log("inside socket constructor")
@@ -90,6 +91,18 @@ export class SocketService {
     return Observable.create((observer) => {
       this.socket.on('notification', (data) => {
         // console.log("New notification received!")
+        observer.next(data)
+      })
+    })
+  }
+
+  public notifyNewAssigneeOfNewIssue = (assigneeData) => {
+    this.socket.emit('notify-assignee-new-issue',assigneeData)
+  } 
+  
+  public updateIssueList = () => {
+    return Observable.create((observer) => {
+      this.socket.on('update-issue-list', (data) => {
         observer.next(data)
       })
     })

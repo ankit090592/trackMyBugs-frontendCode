@@ -65,18 +65,6 @@ export class IssueDescriptionComponent implements OnInit {
 
   }
 
-  // submitForm(form: NgForm) {
-  //   this.hasChanges = false;
-  //   for (let prop in form) {
-  //     console.log("Form values: " +form)
-  //     if (this.currentIssue[prop] != form[prop]) {
-  //       this.hasChanges = true;
-  //     }
-  //   }
-  //   // If no changes, cancel form submition
-  //   if (!this.hasChanges) { return; }
-  // }
-
   public goBack: any = () => {
 
     this.location.back()
@@ -200,6 +188,7 @@ export class IssueDescriptionComponent implements OnInit {
         }
         this.socketService.followIssue(reporterFollowerData)
         this.socketService.followIssue(assigneeFollowerData)
+        this.socketService.notifyNewAssigneeOfNewIssue(assigneeFollowerData)
         this.router.navigate(['dashboard'])
       } else {
         this.toastr.error(data.message, "Error")

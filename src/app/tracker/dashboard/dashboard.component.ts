@@ -44,6 +44,10 @@ export class DashboardComponent implements OnInit {
     // console.log("dashboard userInfo: " + JSON.stringify(this.userInfo))
     this.getAllIssues()
     this.verifyUserAndJoinIssues()
+    this.socketService.updateIssueList().subscribe((data) => {
+      this.getAllIssues()
+      this.toastr.info(`A new issue ${data.issueTitle} has been assigned to you`,'New notification')      
+    })
     this.socketService.receiveNotification().subscribe((data) => {
       // console.log(data)
 
