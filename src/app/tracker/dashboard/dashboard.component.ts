@@ -34,7 +34,6 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit() {
-    // console.log("Inside dashboard ngOnInit")
     this.authToken = Cookie.get("authToken")
     // console.log("dashboard authToken: " + this.authToken)
     this.userName = Cookie.get("userName")
@@ -44,14 +43,15 @@ export class DashboardComponent implements OnInit {
     // console.log("dashboard userInfo: " + JSON.stringify(this.userInfo))
     this.getAllIssues()
     this.verifyUserAndJoinIssues()
+    this.joinChatRoom()
+
+    // for listening to update when a new issue is assigned to this user.
     this.socketService.updateIssueList().subscribe((data) => {
       this.getAllIssues()
-      this.toastr.info(`A new issue ${data.issueTitle} has been assigned to you`,'New notification')      
+      this.toastr.info(`A new issue ${data.newIssueTitle} has been assigned to you by ${data.newReporterName}`, 'New notification')
     })
     this.socketService.receiveNotification().subscribe((data) => {
-      // console.log(data)
 
-      
       if (data.editedContent == 'comment') {
         this.issueEdited = false
         this.notifCounter++
@@ -88,15 +88,10 @@ export class DashboardComponent implements OnInit {
         // console.log("All Issues: " + JSON.stringify(this.allIssues[0].issueId))
       }
 
-
       else if (data.status == 404) {
         // console.log("All issue in err:" + this.allIssues.length)
         this.toastr.info("No issues found!")
       }
-
-      // for (let issue of this.allIssues) {
-      //   console.log("All issue in ts file:" + issue.issueId)
-      // }
     }
     )
   }
@@ -113,6 +108,23 @@ export class DashboardComponent implements OnInit {
 
       })//end subscribe
   }//end verifyUserAndJoinIssues
+
+
+  // for creating and joining a unique socket room for every user
+  // for receiving update if a new issue is assigned.
+  public joinChatRoom: any = () => {
+    let roomData = {
+      roomId: this.userInfo.userId,
+      userId: this.userInfo.userId,
+      userName: this.userName
+    }
+
+    this.socketService.startRoom().subscribe(
+      data => {
+        this.socketService.emitJoinRoom(roomData)
+      }
+    )
+  }
 
 
   // click user-event: for sorting issues
@@ -137,8 +149,7 @@ export class DashboardComponent implements OnInit {
       sortOrder = 1
 
     return function (a, b) {
-      let result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0
-      // console.log("dynamicSort called")
+      let result = (a[property].toLowerCase() < b[property].toLowerCase()) ? -1 : (a[property].toLowerCase() > b[property].toLowerCase()) ? 1 : 0
       // to make result the opposite i.e toggle between ascending/descending
       return result * sortOrder
     }
@@ -182,6 +193,6 @@ export class DashboardComponent implements OnInit {
         this.toastr.error(data.error)
       }
     )
-  }  
+  }
 
 }

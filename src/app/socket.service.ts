@@ -82,7 +82,7 @@ export class SocketService {
   }
 
   public notifyFollowers = (data) => {
-
+    console.log("Inside notify emit")
     this.socket.emit('notify-all-followers', data)
   }
 
@@ -96,8 +96,20 @@ export class SocketService {
     })
   }
 
-  public notifyNewAssigneeOfNewIssue = (assigneeData) => {
-    this.socket.emit('notify-assignee-new-issue',assigneeData)
+  public startRoom = () => {
+    return Observable.create((observer) => {
+      this.socket.on('startUserRoom', (data) => {
+        observer.next(data);
+      });
+    });
+  }
+  public emitJoinRoom = (data) => {
+    this.socket.emit('joinUserRoom', data)
+  }
+
+
+  public notifyNewAssigneeOfNewIssue = (data) => {
+    this.socket.emit('notify-assignee-new-issue',data)
   } 
   
   public updateIssueList = () => {

@@ -5,9 +5,9 @@ import { Router, ActivatedRoute } from '@angular/router'
 import { ToastrService } from 'ngx-toastr'
 import { Cookie } from 'ng2-cookies/ng2-cookies'
 import { Location } from '@angular/common'
-//for accessing form fileds in component
+//for accessing form fields in component
 import { NgForm } from '@angular/forms';
-//for formatting
+//for formatting date
 import { formatDate } from '@angular/common';
 
 @Component({
@@ -26,8 +26,7 @@ export class IssueDescriptionComponent implements OnInit {
   tempIssueData: any = ''
   public editBlock: boolean = false
   public hasChanges: boolean = false
-  // public showEditForm: boolean = false
-  // public buttonName: any = 'Edit'
+  
   // ------------- for create new issue form ----------
   public titleText: any
   public reporterText: any
@@ -44,8 +43,6 @@ export class IssueDescriptionComponent implements OnInit {
     @Inject(LOCALE_ID) private locale: string) { }
 
   ngOnInit() {
-
-    // console.log("Inside issue-desc ngOnInit")
     this.authToken = Cookie.get("authToken")
     // console.log("issue-desc authToken: " + this.authToken)
     this.userName = Cookie.get("userName")
@@ -57,6 +54,8 @@ export class IssueDescriptionComponent implements OnInit {
       this.issueId = this.activatedRoute.snapshot.paramMap.get('issueId')
     }
     this.getallUsers()
+
+    // activate edit block only if we get an issueId from dashboard, i.e. user clicked on existing issue
     if (!(this.issueId === null || this.issueId === undefined || this.issueId === '' || this.issueId.length === 0)) {
       this.editBlock = true
       this.getSelectedIssue()
@@ -151,48 +150,80 @@ export class IssueDescriptionComponent implements OnInit {
   // click event - to create a new issue
   createNewIssue = () => {
 
-    let assigneeName: any
-    for (let user of this.allUsers) {
-      if (user.userId === this.assigneeText) {
-        assigneeName = user.firstName + ' ' + user.lastName
-      }
+    let createAndFollow = () => {
+      return new Promise((resolve, reject) =>{
+        let assigneeName: any
+        for (let user of this.allUsers) {
+          if (user.userId === this.assigneeText) {
+            assigneeName = user.firstName + ' ' + user.lastName
+          }
+        }
+        let newIssueData = {
+          title: this.titleText,
+          description: this.descriptionText,
+          reporter: this.userName,
+          reporterId: this.userInfo.userId,
+          assignee: assigneeName,
+          assigneeId: this.assigneeText,
+          status: this.statusText,
+          createdOn: Date.now
+        }
+        // console.log("New Issue data:" + JSON.stringify(newIssueData))
+        this.appService.createNewIssue(newIssueData).subscribe((data) => {
+          if (data.status === 200) {
+            this.toastr.success("New Issue created sucessfully!")
+    
+            // when a new issue is created, 2 followers will always be there i.e:
+            // reporter & assignee
+            let reporterFollowerData = {
+              issueId: data.data.issueId,
+              userId: data.data.reporterId,
+              userName: data.data.reporter,
+              issueTitle: data.data.title
+            }
+            let assigneeFollowerData = {
+              issueId: data.data.issueId,
+              userId: data.data.assigneeId,
+              userName: data.data.assignee,
+              issueTitle: data.data.title
+            }
+            this.socketService.followIssue(reporterFollowerData)
+            this.socketService.followIssue(assigneeFollowerData)
+            resolve(data)
+            
+          } else {
+            this.toastr.error(data.message, "Error")
+            reject(data.message)
+          }
+        })
+      })
     }
-    let newIssueData = {
-      title: this.titleText,
-      description: this.descriptionText,
-      reporter: this.userName,
-      reporterId: this.userInfo.userId,
-      assignee: assigneeName,
-      assigneeId: this.assigneeText,
-      status: this.statusText,
-      createdOn: Date.now
-    }
-    // console.log("New Issue data:" + JSON.stringify(newIssueData))
-    this.appService.createNewIssue(newIssueData).subscribe((data) => {
-      if (data.status === 200) {
-        this.toastr.success("New Issue created sucessfully!")
+    
 
-        // when a new issue is created, 2 followers will always be there i.e:
-        // reporter & assignee
-        let reporterFollowerData = {
+    let sendNotif = (data) => {
+      return new Promise((resolve,reject) => {
+        let notifData = {
+          assigneeId: data.data.assigneeId,
           issueId: data.data.issueId,
-          userId: data.data.reporterId,
-          userName: data.data.reporter,
-          issueTitle: data.data.title
+          newIssueTitle: data.data.title,
+          newReporterName: data.data.reporter,
+          editedContent: 'new issue'
         }
-        let assigneeFollowerData = {
-          issueId: data.data.issueId,
-          userId: data.data.assigneeId,
-          userName: data.data.assignee,
-          issueTitle: data.data.title
-        }
-        this.socketService.followIssue(reporterFollowerData)
-        this.socketService.followIssue(assigneeFollowerData)
-        this.socketService.notifyNewAssigneeOfNewIssue(assigneeFollowerData)
+        console.log("After creating new issue, new issue data: "+data.data.assigneeId)
+        
+        this.socketService.notifyNewAssigneeOfNewIssue(notifData)
         this.router.navigate(['dashboard'])
-      } else {
-        this.toastr.error(data.message, "Error")
-      }
+        resolve()
+        // this.socketService.notifyNewAssigneeOfNewIssue(notifData)
+      })
+    }
+
+    createAndFollow()
+    .then(sendNotif)
+    .then(() => {
+      console.log("Inside final resolve, Notification sent")
+    }).catch((err)=>{
+      console.log(err)
     })
   }
 
@@ -203,9 +234,7 @@ export class IssueDescriptionComponent implements OnInit {
     this.hasChanges = false
     let whatChanged: any = []
     for (let prop in form) {
-      // console.log("property: " + prop)
-      // console.log("Form values: " + form[prop])
-      //     console.log("currentissue values: " + this.tempIssueData[prop])
+      
       if (prop !== 'follow' && prop !== 'assignee') {
         if (this.tempIssueData[prop] !== form[prop]) {
           
@@ -217,6 +246,23 @@ export class IssueDescriptionComponent implements OnInit {
         this.hasChanges = true;
         whatChanged.push('assignee')
         this.tempIssueData['assignee'] = form['assignee']
+        console.log("New assignee: " +this.currentIssue.assigneeId + form['assignee'])
+        let followData = {
+          issueId: this.issueId,
+          userId: form['assignee'],
+          userName: this.userName
+        }
+        this.socketService.followIssue(followData)
+
+        let notifData = {
+          assigneeId: form['assignee'],
+          issueId: this.issueId,
+          newIssueTitle: form['title'],
+          newReporterName: this.userName,
+          editedContent: 'new issue'
+        }
+                
+        this.socketService.notifyNewAssigneeOfNewIssue(notifData)
       }
     }
     
@@ -224,7 +270,7 @@ export class IssueDescriptionComponent implements OnInit {
       this.appService.editIssue(this.issueId, this.currentIssue).subscribe((data) => {
         if (data.status === 200) {
           this.toastr.success("Edited successfully")
-          // console.log("whatchnged: " + whatChanged)
+          console.log("whatchanged: " + whatChanged)
           let notifData = {
             editedBy: this.userName,
             editedContent: whatChanged,
@@ -232,7 +278,18 @@ export class IssueDescriptionComponent implements OnInit {
             issueId: this.issueId
           }
           this.socketService.notifyFollowers(notifData)
-
+          // this.router.navigate(['dashboard'])
+      //     for(let x in whatChanged){
+      //       console.log("what cahnged: " +whatChanged[x])
+      //     if(whatChanged[x] === 'assignee'){
+      //       console.log("Inside notif loop")
+      //     let notifNewAssigneeData = {
+      //       newIssueTitle: this.currentIssue.title,
+      //       newReporterName: this.userName
+      //     }
+      //     this.socketService.notifyNewAssigneeOfNewIssue(notifNewAssigneeData)
+      //   }
+      // }
         } else {
           this.toastr.error(data.message)
         }

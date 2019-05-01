@@ -10,6 +10,7 @@ import { Observable, throwError } from 'rxjs';
 @Injectable({
   providedIn: 'root'
 })
+
 export class AppService {
 
   private baseUrl = 'http://api.appdevtest.xyz/api/v1';
